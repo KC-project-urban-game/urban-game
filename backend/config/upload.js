@@ -22,18 +22,22 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (_req, file, cb) => {
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-  if (allowed.includes(file.mimetype)) {
+  const allowedTypes = process.env.ALLOWED_FILE_TYPES
+    ? process.env.ALLOWED_FILE_TYPES.split(',')
+    : ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+  if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
     cb(new Error('Only image files are allowed'), false);
   }
 };
 
+const maxFileSize = (parseInt(process.env.MAX_FILE_SIZE_MB) || 10) * 1024 * 1024;
+
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: maxFileSize },
 });
 
 module.exports = { upload };

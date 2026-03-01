@@ -111,10 +111,10 @@ const TASKS = [
   },
 ];
 
-// ★ Admin credentials – CHANGE THESE before deploying!
+// ★ Admin credentials – set via environment variables or use defaults
 const ADMIN = {
-  name: 'admin',
-  password: 'admin2026',  // Change this!
+  name: process.env.DEFAULT_ADMIN_NAME || 'admin',
+  password: process.env.DEFAULT_ADMIN_PASSWORD || 'admin2026',
   role: 'admin',
   avatarColor: '#ffd700',
 };
@@ -138,7 +138,9 @@ const CONFIG = {
 
 async function seed() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/scavenger-hunt');
+    const dbName = process.env.DB_NAME || 'scavenger-hunt';
+    const mongoUri = process.env.MONGODB_URI || `mongodb://localhost:27017/${dbName}`;
+    await mongoose.connect(mongoUri);
     console.log('✅  Connected to MongoDB');
 
     // Seed tasks

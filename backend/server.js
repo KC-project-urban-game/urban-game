@@ -11,17 +11,19 @@ const app = express();
 
 // ── Middleware ────────────────────────────────────────────────
 app.use(cors({
-  origin: true,
+  origin: process.env.CORS_ORIGIN || true,
   credentials: true,
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+const maxRequestSize = process.env.MAX_REQUEST_SIZE_MB ? `${process.env.MAX_REQUEST_SIZE_MB}mb` : '10mb';
+app.use(express.json({ limit: maxRequestSize }));
+app.use(express.urlencoded({ extended: true, limit: maxRequestSize }));
 
 // ── Database ─────────────────────────────────────────────────
+const dbName = process.env.DB_NAME || 'scavenger-hunt';
 const mongoUri =
   process.env.MONGODB_URI ||
   process.env.AZURE_COSMOS_CONNECTIONSTRING ||
-  'mongodb://localhost:27017/scavenger-hunt';
+  `mongodb://localhost:27017/${dbName}`;
 
 mongoose
   .connect(mongoUri)
@@ -59,8 +61,10 @@ async function autoSeed() {
   }
 
   if (!adminExists) {
-    await Team.create({ name: 'admin', password: 'admin2026', role: 'admin', avatarColor: '#ffd700' });
-    console.log('🔐  Auto-created admin account  (name: "admin", password: "admin2026")');
+    const adminName = process.env.DEFAULT_ADMIN_NAME || 'admin';
+    const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin2026';
+    await Team.create({ name: adminName, password: adminPassword, role: 'admin', avatarColor: '#ffd700' });
+    console.log(`🔐  Auto-created admin account  (name: "${adminName}", password: "${adminPassword}")`);
   }
 
   const configExists = await GameConfig.findOne();
