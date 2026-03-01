@@ -9,6 +9,7 @@ const SideQuest = require('../models/SideQuest');
 const SideQuestSubmission = require('../models/SideQuestSubmission');
 const auth = require('../middleware/auth');
 const { upload } = require('../config/upload');
+const fullUrl = require('../utils/fullUrl');
 
 // List all active sidequests + attach team completion & review status + summary
 router.get('/', auth, async (req, res, next) => {
@@ -25,7 +26,7 @@ router.get('/', auth, async (req, res, next) => {
         ...q,
         submitted: !!sub,
         status: sub?.status || null,
-        photoUrl: sub?.photoUrl || null,
+        photoUrl: fullUrl(req, sub?.photoUrl || null),
       };
     });
 
@@ -55,7 +56,7 @@ router.get('/gallery', auth, async (req, res, next) => {
       .limit(200)
       .lean();
 
-    res.json(submissions);
+    res.json(submissions.map((s) => ({ ...s, photoUrl: fullUrl(req, s.photoUrl) })));
   } catch (err) {
     next(err);
   }
@@ -91,7 +92,7 @@ router.post('/:id/submit', auth, upload.single('photo'), async (req, res, next) 
       message: 'SideQuest completed!',
       submission: {
         id: submission._id,
-        photoUrl: submission.photoUrl,
+        photoUrl: fullUrl(req, submission.photoUrl),
         status: submission.status,
       },
     });

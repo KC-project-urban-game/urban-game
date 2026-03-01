@@ -5,6 +5,7 @@ const router = require('express').Router();
 const Submission = require('../models/Submission');
 const auth = require('../middleware/auth');
 const { upload } = require('../config/upload');
+const fullUrl = require('../utils/fullUrl');
 
 // ★ Upload photo – STOPS the server-side timer
 router.post('/:taskId/upload', auth, upload.single('photo'), async (req, res, next) => {
@@ -42,7 +43,7 @@ router.post('/:taskId/upload', auth, upload.single('photo'), async (req, res, ne
       submission: {
         id: submission._id,
         elapsedMs: submission.elapsedMs,
-        photoUrl: submission.photoUrl,
+        photoUrl: fullUrl(req, submission.photoUrl),
         status: submission.status,
       },
     });
@@ -66,7 +67,7 @@ router.get('/feed', auth, async (req, res, next) => {
       .limit(100)
       .lean();
 
-    res.json(feed);
+    res.json(feed.map((s) => ({ ...s, photoUrl: fullUrl(req, s.photoUrl) })));
   } catch (err) {
     next(err);
   }
@@ -96,7 +97,7 @@ router.get('/gallery', auth, async (req, res, next) => {
     // Sortuj po task.order w JS
     submissions.sort((a, b) => (a.task?.order ?? 999) - (b.task?.order ?? 999));
 
-    res.json(submissions);
+    res.json(submissions.map((s) => ({ ...s, photoUrl: fullUrl(req, s.photoUrl) })));
   } catch (err) {
     next(err);
   }

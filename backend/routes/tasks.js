@@ -10,6 +10,7 @@ const Team = require('../models/Team');
 const Submission = require('../models/Submission');
 const GameConfig = require('../models/GameConfig');
 const auth = require('../middleware/auth');
+const fullUrl = require('../utils/fullUrl');
 
 // List all active tasks in this team's queue order
 router.get('/', auth, async (req, res, next) => {
@@ -109,7 +110,7 @@ router.get('/:id', auth, async (req, res, next) => {
             riddleOpenedAt: submission.riddleOpenedAt,
             status: submission.status,
             elapsedMs: submission.elapsedMs,
-            photoUrl: submission.photoUrl,
+            photoUrl: fullUrl(req, submission.photoUrl),
           }
         : null, // null means task hasn't been started yet
     });
@@ -147,7 +148,7 @@ router.post('/:id/start', auth, async (req, res, next) => {
           riddleOpenedAt: submission.riddleOpenedAt,
           status: submission.status,
           elapsedMs: submission.elapsedMs,
-          photoUrl: submission.photoUrl,
+          photoUrl: fullUrl(req, submission.photoUrl),
         },
       });
     }

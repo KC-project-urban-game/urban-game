@@ -13,6 +13,7 @@ const SideQuest = require('../models/SideQuest');
 const SideQuestSubmission = require('../models/SideQuestSubmission');
 const fs = require('fs');
 const path = require('path');
+const fullUrl = require('../utils/fullUrl');
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
 
@@ -173,7 +174,7 @@ router.get('/submissions', async (req, res, next) => {
       .sort('-photoSubmittedAt')
       .lean();
 
-    res.json(submissions);
+    res.json(submissions.map((s) => ({ ...s, photoUrl: fullUrl(req, s.photoUrl) })));
   } catch (err) {
     next(err);
   }
@@ -619,7 +620,7 @@ router.get('/sidequests/submissions', async (req, res, next) => {
       .populate('sideQuest', 'title description')
       .sort('-createdAt')
       .lean();
-    res.json(submissions);
+    res.json(submissions.map((s) => ({ ...s, photoUrl: fullUrl(req, s.photoUrl) })));
   } catch (err) {
     next(err);
   }
