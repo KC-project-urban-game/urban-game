@@ -14,6 +14,9 @@ import {
   Plus,
   UserPlus,
   X,
+  Key,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
@@ -33,6 +36,7 @@ export default function AdminTeams() {
   const [newName, setNewName] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [creating, setCreating] = useState(false);
+  const [expandedTeam, setExpandedTeam] = useState(null);
 
   // Modal state
   const [confirmModal, setConfirmModal] = useState({ open: false, type: null, id: null, name: '' });
@@ -126,23 +130,22 @@ export default function AdminTeams() {
           <h1 className="text-xl font-black text-white">Teams</h1>
           <span className="text-xs text-gray-500 ml-1">{teams.length} teams</span>
         </div>
-        <button
-          onClick={() => setShowCreate(!showCreate)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neon-green/20 text-neon-green text-xs font-bold hover:bg-neon-green/30 transition-colors"
-        >
-          {showCreate ? <X size={14} /> : <UserPlus size={14} />}
-          {showCreate ? 'Cancel' : 'New Team'}
-        </button>
-        <Users className="text-neon-green" size={20} />
-        <h1 className="text-xl font-black text-white">Teams</h1>
-        <span className="text-xs text-gray-500 ml-auto">{teams.length} teams</span>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="ml-3 px-3 py-2 rounded-lg bg-neon-cyan/10 text-neon-cyan hover:bg-neon-cyan/20 flex items-center gap-2"
-          title="Add teams"
-        >
-          <PlusCircle size={14} /> Add Teams
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCreate(!showCreate)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neon-green/20 text-neon-green text-xs font-bold hover:bg-neon-green/30 transition-colors"
+          >
+            {showCreate ? <X size={14} /> : <UserPlus size={14} />}
+            {showCreate ? 'Cancel' : 'New'}
+          </button>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neon-cyan/20 text-neon-cyan text-xs font-bold hover:bg-neon-cyan/30 transition-colors"
+            title="Generate teams in bulk"
+          >
+            <PlusCircle size={14} /> Generate
+          </button>
+        </div>
       </div>
 
       {/* Create team form */}
@@ -203,12 +206,17 @@ export default function AdminTeams() {
       ) : (
         <div className="space-y-2">
           {teams.map((team, i) => (
+            <div key={team._id}>
             <motion.div
-              key={team._id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
-              className="glass rounded-xl p-3 flex items-center gap-3 neon-border"
+              onClick={() => setExpandedTeam(expandedTeam === team._id ? null : team._id)}
+              className={`glass rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all ${
+                expandedTeam === team._id
+                  ? 'border border-neon-green/40 ring-1 ring-neon-green/20 rounded-b-none'
+                  : 'neon-border'
+              }`}
             >
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-dark-900 flex-shrink-0"
@@ -232,21 +240,60 @@ export default function AdminTeams() {
 
               <div className="flex items-center gap-1 flex-shrink-0">
                   <button
-                    onClick={() => handleReshuffle(team._id, team.name)}
+                    onClick={(e) => { e.stopPropagation(); handleReshuffle(team._id, team.name); }}
                     className="p-2 rounded-lg hover:bg-dark-700 text-gray-400 hover:text-neon-cyan transition-colors"
                     title="Reshuffle task queue"
                   >
                     <Shuffle size={14} />
                   </button>
                   <button
-                    onClick={() => handleDelete(team._id, team.name)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(team._id, team.name); }}
                     className="p-2 rounded-lg hover:bg-dark-700 text-gray-400 hover:text-neon-pink transition-colors"
                     title="Delete team"
                   >
                     <Trash2 size={14} />
                   </button>
+                  {expandedTeam === team._id ? (
+                    <ChevronUp size={16} className="text-neon-green" />
+                  ) : (
+                    <ChevronDown size={16} className="text-gray-600" />
+                  )}
                 </div>
             </motion.div>
+
+            {/* Expanded info panel */}
+            <AnimatePresence>
+              {expandedTeam === team._id && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="glass rounded-b-2xl p-4 border border-neon-green/20 border-t-0 space-y-2">
+                    {!team.profileEdited && team.originalPassword ? (
+                      <div className="flex items-center gap-2">
+                        <Key size={14} className="text-neon-gold" />
+                        <span className="text-xs text-gray-400">Password:</span>
+                        <span className="text-sm font-mono font-bold text-neon-gold bg-dark-800 px-2 py-1 rounded-lg select-all">
+                          {team.originalPassword}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Key size={14} className="text-gray-600" />
+                        <span className="text-xs text-gray-500">Password changed by team (not available)</span>
+                      </div>
+                    )}
+                    <div className="text-[10px] text-gray-600">
+                      ID: {team._id}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            </div>
           ))}
         </div>
       )}

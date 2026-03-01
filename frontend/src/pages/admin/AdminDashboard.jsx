@@ -35,6 +35,14 @@ export default function AdminDashboard() {
       stat: stats ? `${stats.tasks} tasks` : null,
     },
     {
+      to: '/admin/sidequests',
+      icon: Sparkles,
+      label: 'Manage Side Quests',
+      desc: 'Add, edit, delete bonus challenges',
+      color: 'text-neon-gold',
+      stat: null,
+    },
+    {
       to: '/admin/photos',
       icon: Image,
       label: 'Photo Moderation',
@@ -49,14 +57,6 @@ export default function AdminDashboard() {
       desc: 'View teams, reshuffle queues',
       color: 'text-neon-green',
       stat: stats ? `${stats.teams} teams` : null,
-    },
-    {
-      to: '/admin/sidequests',
-      icon: Sparkles,
-      label: 'Side Quests',
-      desc: 'Manage bonus challenges & rate submissions',
-      color: 'text-neon-gold',
-      stat: null,
     },
     {
       to: '/admin/config',

@@ -280,6 +280,7 @@ router.delete('/submissions/:id', async (req, res, next) => {
 router.get('/teams', async (_req, res, next) => {
   try {
     const teams = await Team.find({ role: { $ne: 'admin' } }).select('-password').sort('name');
+    // Include originalPassword for non-edited teams
     res.json(teams);
   } catch (err) {
     next(err);
@@ -342,7 +343,7 @@ router.post('/teams', async (req, res, next) => {
       }
       try {
         const taskQueue = await generateTaskQueueForNewTeam();
-        const team = await Team.create({ name, password, taskQueue });
+        const team = await Team.create({ name, password, taskQueue, originalPassword: password });
         created.push({ id: team._id, name: team.name, password });
       } catch (e) {
         // capture DB/validation errors per-team and continue
@@ -400,7 +401,7 @@ router.post('/teams/generate', async (req, res, next) => {
 
       try {
         const taskQueue = await generateTaskQueueForNewTeam();
-        const team = await Team.create({ name, password, taskQueue });
+        const team = await Team.create({ name, password, taskQueue, originalPassword: password });
         created.push({ id: team._id, name: team.name, password });
       } catch (e) {
         errors.push({ name, error: e.message || 'Failed to create' });
