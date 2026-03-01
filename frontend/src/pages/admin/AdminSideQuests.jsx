@@ -8,6 +8,7 @@ import {
   ArrowLeft, Plus, Trash2, Save, X, Loader2,
   AlertTriangle, Sparkles, Eye, Camera,
   CheckCircle2, XCircle, Clock,
+  ChevronDown, ChevronUp,
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
@@ -202,10 +203,11 @@ export default function AdminSideQuests() {
                   <h3 className="text-sm font-bold text-white truncate">{q.title}</h3>
                   {!q.isActive && <span className="text-[10px] text-red-400">Inactive</span>}
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setConfirm({ open: true, type: 'delete', id: q._id }); }}
-                  className="text-gray-600 hover:text-red-400 transition-colors p-1">
-                  <Trash2 size={14} />
-                </button>
+                {editing === q._id ? (
+                  <ChevronUp size={16} className="text-neon-gold" />
+                ) : (
+                  <ChevronDown size={16} className="text-gray-600" />
+                )}
               </div>
 
               <AnimatePresence>
@@ -218,6 +220,11 @@ export default function AdminSideQuests() {
                         <button onClick={cancelEdit}
                           className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:bg-white/5">
                           Cancel
+                        </button>
+                        <button onClick={() => setConfirm({ open: true, type: 'delete', id: q._id })}
+                          className="py-2.5 px-4 rounded-xl text-xs font-bold border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1.5"
+                          title="Delete sidequest">
+                          <Trash2 size={12} /> Delete
                         </button>
                         <button onClick={() => setConfirm({ open: true, type: 'save', id: q._id })} disabled={saving}
                           className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-neon-gold/20 text-neon-gold border border-neon-gold/30 hover:bg-neon-gold/30 flex items-center justify-center gap-1.5 disabled:opacity-50">
@@ -341,32 +348,9 @@ export default function AdminSideQuests() {
         <h1 className="text-xl font-black text-white">Side Quests</h1>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-5">
-        <button onClick={() => setTab('manage')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-            tab === 'manage'
-              ? 'bg-neon-gold/20 text-neon-gold border border-neon-gold/30'
-              : 'glass text-gray-400 hover:text-white border border-transparent'
-          }`}>
-          <Eye size={14} /> Manage
-        </button>
-        <button onClick={() => setTab('submissions')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-            tab === 'submissions'
-              ? 'bg-neon-gold/20 text-neon-gold border border-neon-gold/30'
-              : 'glass text-gray-400 hover:text-white border border-transparent'
-          }`}>
-          <Camera size={14} /> Submissions
-          {pendingCount > 0 && (
-            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-yellow-500/30 text-yellow-400 text-[10px] font-black">
-              {pendingCount}
-            </span>
-          )}
-        </button>
-      </div>
+      {/* Tabs - removed submissions tab (moved to Photo Moderation) */}
 
-      {tab === 'manage' ? renderManage() : renderSubmissions()}
+      {renderManage()}
 
       <ConfirmModal
         open={confirm.open}

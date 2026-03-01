@@ -28,12 +28,7 @@ export default function BottomNav() {
   const { logout, team } = useAuth();
   const isAdmin = team?.role === 'admin';
 
-  const tabs = isAdmin
-    ? [
-        ...teamTabs,
-        { to: '/admin', icon: Shield, label: 'Admin' },
-      ]
-    : teamTabs;
+  const tabs = isAdmin ? adminTabs : teamTabs;
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 glass-strong">

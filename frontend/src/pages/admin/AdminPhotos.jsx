@@ -1,8 +1,9 @@
 // ──────────────────────────────────────────────────────────────
 // Admin Photo Moderation – block/delete/score submitted photos
-// Filters: status, task, scored/unscored
+// + approve/reject sidequest submissions
+// Filters: category (tasks/sidequests), status, task, scored
 // ──────────────────────────────────────────────────────────────
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -15,6 +16,10 @@ import {
   Loader2,
   Star,
   Filter,
+  CheckCircle2,
+  XCircle,
+  Sparkles,
+  Target,
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
@@ -38,6 +43,7 @@ function timeAgo(dateStr) {
 
 export default function AdminPhotos() {
   const navigate = useNavigate();
+  const [category, setCategory] = useState('tasks'); // 'tasks' | 'sidequests'
   const [submissions, setSubmissions] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +52,11 @@ export default function AdminPhotos() {
   const [scoredFilter, setScoredFilter] = useState('all'); // all | scored | unscored
   const [scoringId, setScoringId] = useState(null); // which submission is being scored
   const [scoreInput, setScoreInput] = useState('');
+
+  // SideQuest submissions state
+  const [sqSubmissions, setSqSubmissions] = useState([]);
+  const [sqLoading, setSqLoading] = useState(true);
+  const [sqFilter, setSqFilter] = useState('pending'); // pending | approved | rejected
 
   // Modal state
   const [blockModal, setBlockModal] = useState({ open: false, id: null });
@@ -64,7 +75,15 @@ export default function AdminPhotos() {
       .catch(() => setLoading(false));
   };
 
+  const loadSqSubmissions = useCallback(() => {
+    setSqLoading(true);
+    api.get('/admin/sidequests/submissions')
+      .then(({ data }) => { setSqSubmissions(data); setSqLoading(false); })
+      .catch(() => setSqLoading(false));
+  }, []);
+
   useEffect(() => { setLoading(true); loadSubmissions(); }, [filter]);
+  useEffect(() => { if (category === 'sidequests') loadSqSubmissions(); }, [category, loadSqSubmissions]);
 
   // Apply client-side filters (task + scored)
   const filteredSubmissions = submissions.filter((sub) => {
@@ -137,6 +156,28 @@ export default function AdminPhotos() {
     }
   };
 
+  // ── SideQuest review ──────────────────────────────────────
+  const reviewSqSubmission = async (subId, action) => {
+    try {
+      await api.put(`/admin/sidequests/submissions/${subId}/${action}`);
+      toast.success(action === 'approve' ? 'Approved!' : 'Rejected!');
+      loadSqSubmissions();
+    } catch (err) {
+      toast.error('Action failed');
+    }
+  };
+
+  const filteredSqSubs = sqSubmissions.filter((s) => {
+    if (sqFilter === 'pending')  return s.status === 'pending';
+    if (sqFilter === 'approved') return s.status === 'approved';
+    if (sqFilter === 'rejected') return s.status === 'rejected';
+    return true;
+  });
+
+  const pendingSqCount  = sqSubmissions.filter((s) => s.status === 'pending').length;
+  const approvedSqCount = sqSubmissions.filter((s) => s.status === 'approved').length;
+  const rejectedSqCount = sqSubmissions.filter((s) => s.status === 'rejected').length;
+
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-6">
       {/* Header */}
@@ -148,6 +189,37 @@ export default function AdminPhotos() {
         <h1 className="text-xl font-black text-white">Photo Moderation</h1>
       </div>
 
+      {/* Category toggle: Tasks / Side Quests */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setCategory('tasks')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            category === 'tasks'
+              ? 'bg-neon-cyan/20 text-neon-cyan neon-border'
+              : 'glass text-gray-400 hover:text-white'
+          }`}
+        >
+          <Target size={14} /> Tasks
+        </button>
+        <button
+          onClick={() => setCategory('sidequests')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            category === 'sidequests'
+              ? 'bg-neon-gold/20 text-neon-gold border border-neon-gold/30'
+              : 'glass text-gray-400 hover:text-white'
+          }`}
+        >
+          <Sparkles size={14} /> Side Quests
+          {pendingSqCount > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-yellow-500/30 text-yellow-400 text-[10px] font-black">
+              {pendingSqCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {category === 'tasks' ? (
+      <>
       {/* Filter: Status */}
       <div className="flex gap-2 mb-3">
         {['all', 'completed', 'blocked'].map((f) => (
@@ -347,6 +419,98 @@ export default function AdminPhotos() {
             </motion.div>
           ))}
         </div>
+      )}
+      </>
+      ) : (
+      <>
+      {/* SideQuest Submissions */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {[
+          { key: 'pending',  label: 'Pending',  count: pendingSqCount,  color: 'text-yellow-400' },
+          { key: 'approved', label: 'Approved', count: approvedSqCount, color: 'text-neon-green' },
+          { key: 'rejected', label: 'Rejected', count: rejectedSqCount, color: 'text-neon-pink' },
+        ].map((f) => (
+          <button key={f.key} onClick={() => setSqFilter(f.key)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              sqFilter === f.key
+                ? 'bg-neon-gold/20 text-neon-gold border border-neon-gold/30'
+                : 'glass text-gray-400 hover:text-white border border-transparent'
+            }`}>
+            {f.label}
+            <span className={`text-[10px] font-black ${sqFilter === f.key ? 'text-neon-gold' : f.color}`}>
+              {f.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {sqLoading ? (
+        <div className="flex justify-center py-10"><Loader2 className="animate-spin text-neon-cyan" size={32} /></div>
+      ) : filteredSqSubs.length === 0 ? (
+        <div className="text-center py-16 text-gray-500 text-sm">No submissions in this category</div>
+      ) : (
+        <div className="space-y-3">
+          {filteredSqSubs.map((sub, i) => (
+            <motion.div key={sub._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+              className={`glass rounded-2xl overflow-hidden ${
+                sub.status === 'approved' ? 'border border-neon-green/20'
+                : sub.status === 'rejected' ? 'border border-neon-pink/20'
+                : 'border border-yellow-500/20'
+              }`}>
+              {/* Header */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-dark-900"
+                  style={{ backgroundColor: sub.team?.avatarColor || '#ffd700' }}>
+                  {sub.team?.name?.[0]?.toUpperCase() || '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{sub.team?.name}</p>
+                  <p className="text-[11px] text-gray-500 truncate">{sub.sideQuest?.title}</p>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  sub.status === 'approved' ? 'bg-neon-green/20 text-neon-green'
+                  : sub.status === 'rejected' ? 'bg-neon-pink/20 text-neon-pink'
+                  : 'bg-yellow-500/20 text-yellow-400'
+                }`}>
+                  {sub.status === 'approved' ? 'Approved' : sub.status === 'rejected' ? 'Rejected' : 'Pending'}
+                </span>
+              </div>
+
+              {/* Photo */}
+              {sub.photoUrl && (
+                <img src={sub.photoUrl} alt="" className="w-full aspect-[4/3] object-cover" loading="lazy" />
+              )}
+
+              {/* Actions */}
+              <div className="px-4 py-3 flex items-center gap-2">
+                <button
+                  onClick={() => reviewSqSubmission(sub._id, 'approve')}
+                  disabled={sub.status === 'approved'}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                    sub.status === 'approved'
+                      ? 'bg-neon-green/20 text-neon-green border border-neon-green/30 opacity-60'
+                      : 'border border-neon-green/30 text-neon-green hover:bg-neon-green/20'
+                  }`}>
+                  <CheckCircle2 size={14} />
+                  Approve
+                </button>
+                <button
+                  onClick={() => reviewSqSubmission(sub._id, 'reject')}
+                  disabled={sub.status === 'rejected'}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                    sub.status === 'rejected'
+                      ? 'bg-neon-pink/20 text-neon-pink border border-neon-pink/30 opacity-60'
+                      : 'border border-neon-pink/30 text-neon-pink hover:bg-neon-pink/20'
+                  }`}>
+                  <XCircle size={14} />
+                  Reject
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+      </>
       )}
 
       {/* Block reason modal */}

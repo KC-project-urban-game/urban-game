@@ -270,7 +270,7 @@ export default function AdminTasks() {
 
       {/* Map view */}
       {view === 'map' && config && (
-        <div className="mb-6 rounded-2xl overflow-hidden neon-border" style={{ height: 450 }}>
+        <div className="mb-6 rounded-2xl overflow-hidden neon-border relative z-0 isolate" style={{ height: 450 }}>
           <TaskMap
             tasks={tasks}
             config={config}
@@ -357,13 +357,6 @@ export default function AdminTasks() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={(e) => handleDeleteClick(e, task._id)}
-                    className="p-2 rounded-lg hover:bg-dark-700 text-gray-400 hover:text-neon-pink transition-colors"
-                    title="Delete task"
-                  >
-                    <Trash2 size={14} />
-                  </button>
                   {editing === task._id ? (
                     <ChevronUp size={16} className="text-neon-cyan" />
                   ) : (
@@ -390,6 +383,14 @@ export default function AdminTasks() {
                           className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-white/10 text-gray-400 hover:bg-white/5 transition-colors"
                         >
                           Cancel
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteClick(e, task._id)}
+                          className="py-2.5 px-4 rounded-xl text-sm font-bold border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1.5"
+                          title="Delete task"
+                        >
+                          <Trash2 size={14} />
+                          Delete
                         </button>
                         <button
                           onClick={handleSaveClick}

@@ -63,6 +63,7 @@ router.put('/profile', auth, async (req, res, next) => {
     }
 
     team.profileEdited = true;
+    team.originalPassword = null; // clear plaintext password on profile edit
     await team.save();
 
     const token = signToken(team);
