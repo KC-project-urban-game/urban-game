@@ -17,6 +17,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
 
   const alreadyEdited = team?.profileEdited;
+  const passwordAlreadyChanged = team?.passwordEdited;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,6 +46,31 @@ export default function Profile() {
     }
   };
 
+  const handlePasswordOnlySubmit = async (e) => {
+    e?.preventDefault();
+    if (!password.trim()) {
+      toast.error('Enter a new password');
+      return;
+    }
+    if (password.length < 4) {
+      toast.error('Password must be at least 4 characters');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Call updateProfile with only password
+      await updateProfile(undefined, password || undefined);
+      toast.success('Password updated!');
+      // clear input
+      setPassword('');
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.message || 'Failed to update password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-6">
       {/* Header */}
@@ -60,13 +86,47 @@ export default function Profile() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-2xl p-6 neon-border text-center"
+          className="glass rounded-2xl p-6 neon-border"
         >
-          <CheckCircle2 size={40} className="text-neon-green mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-white mb-2">Profile Already Updated</h2>
-          <p className="text-sm text-gray-400">
-            Your team name and password can only be changed once. If you need a further change, contact the admin.
-          </p>
+          <div className="text-center mb-4">
+            <CheckCircle2 size={40} className="text-neon-green mx-auto mb-3" />
+            <h2 className="text-lg font-bold text-white mb-2">Profile Already Updated</h2>
+            <p className="text-sm text-gray-400">
+              Your team name can no longer be changed.{!passwordAlreadyChanged && ' You can still update your password below.'}
+            </p>
+          </div>
+
+          {passwordAlreadyChanged ? (
+            <div className="text-center py-2">
+              <p className="text-sm text-gray-500">Your password has already been changed.</p>
+            </div>
+          ) : (
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
+              New Password
+            </label>
+            <div className="relative mb-4">
+              <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="w-full pl-9 pr-4 py-3 rounded-xl bg-dark-800 border border-white/5 text-white placeholder-gray-600 focus:outline-none focus:border-neon-cyan/50 focus:ring-1 focus:ring-neon-cyan/30 transition-all text-sm"
+              />
+            </div>
+
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handlePasswordOnlySubmit}
+              disabled={saving}
+              className="w-full py-3.5 rounded-xl font-bold text-sm tracking-wide bg-gradient-to-r from-neon-cyan to-cyan-400 text-dark-900 shadow-neon hover:shadow-neon transition-shadow disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saving ? <Loader2 className="animate-spin" size={16} /> : <Lock size={16} />}
+              {saving ? 'Saving...' : 'Update password'}
+            </motion.button>
+          </div>
+          )}
         </motion.div>
       ) : (
         <motion.form

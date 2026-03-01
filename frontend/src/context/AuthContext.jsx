@@ -52,9 +52,9 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const { data } = await api.put('/auth/name', { name: newName });
-      if (data.token) localStorage.setItem('token', data.token);
+      if (data.token) sessionStorage.setItem('token', data.token);
       if (data.team) {
-        localStorage.setItem('team', JSON.stringify(data.team));
+        sessionStorage.setItem('team', JSON.stringify(data.team));
         setTeam(data.team);
       }
       return data;

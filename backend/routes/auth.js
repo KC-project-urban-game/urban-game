@@ -42,10 +42,7 @@ router.put('/profile', auth, async (req, res, next) => {
   try {
     const team = await Team.findById(req.teamId);
     if (!team) return res.status(404).json({ error: 'Team not found' });
-    if (team.role === 'admin') return res.status(403).json({ error: 'Admin cannot edit profile this way' });
-    if (team.profileEdited) {
-      return res.status(403).json({ error: 'Profile can only be edited once' });
-    }
+  if (team.role === 'admin') return res.status(403).json({ error: 'Admin cannot edit profile this way' });
 
     const { name, password } = req.body;
     if (!name && !password) {
@@ -53,17 +50,22 @@ router.put('/profile', auth, async (req, res, next) => {
     }
 
     if (name && name !== team.name) {
+      // If the profile was already edited (including via the first-login dialog),
+      // disallow changing the team name again.
+      if (team.profileEdited) return res.status(403).json({ error: 'Team name cannot be changed' });
       const exists = await Team.findOne({ name });
       if (exists) return res.status(409).json({ error: 'Team name already taken' });
       team.name = name;
     }
     if (password) {
+      if (team.passwordEdited) return res.status(403).json({ error: 'Password can only be changed once' });
       if (password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
       team.password = password; // pre-save hook will hash it
+      team.passwordEdited = true;
+      team.originalPassword = null; // clear plaintext password on password change
     }
 
     team.profileEdited = true;
-    team.originalPassword = null; // clear plaintext password on profile edit
     await team.save();
 
     const token = signToken(team);
@@ -75,6 +77,7 @@ router.put('/profile', auth, async (req, res, next) => {
         avatarColor: team.avatarColor,
         role: team.role,
         profileEdited: team.profileEdited,
+        passwordEdited: team.passwordEdited || false,
       },
     });
   } catch (err) {
@@ -166,13 +169,16 @@ router.put('/name', auth, async (req, res, next) => {
     const team = await Team.findById(req.teamId);
     if (!team) return res.status(404).json({ error: 'Team not found' });
 
-    team.name = trimmed;
-    await team.save();
+  team.name = trimmed;
+  // mark that profile was edited via the dialog
+  team.profileEdited = true;
+  team.originalPassword = null;
+  await team.save();
 
-    // issue a refreshed token with the new name embedded
-    const token = signToken(team);
+  // issue a refreshed token with the new name embedded
+  const token = signToken(team);
 
-    res.json({ token, team: { id: team._id, name: team.name, avatarColor: team.avatarColor, role: team.role } });
+  res.json({ token, team: { id: team._id, name: team.name, avatarColor: team.avatarColor, role: team.role, profileEdited: team.profileEdited } });
   } catch (err) {
     next(err);
   }

@@ -36,7 +36,9 @@ const teamSchema = new mongoose.Schema(
 
     // ── Profile edit tracking ────────────────────────────
     // Teams can change name/password once. After that, this is true.
-    profileEdited: { type: Boolean, default: false },
+  profileEdited: { type: Boolean, default: false },
+  // Teams may change their password once (separate from name change)
+  passwordEdited: { type: Boolean, default: false },
 
     // ── Original auto-generated password (plaintext) ─────
     // Stored only for admin visibility; cleared when team edits profile.

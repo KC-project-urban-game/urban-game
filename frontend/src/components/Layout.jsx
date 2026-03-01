@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
-  const { team, isAuthenticated, updateName: contextUpdateName } = useAuth();
+  const { team, isAuthenticated, updateName: contextUpdateName, loading } = useAuth();
   const updateName = contextUpdateName || (() => {});
+  const [renameError, setRenameError] = useState(null);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const navigate = useNavigate();
 
@@ -71,12 +72,16 @@ export default function Layout() {
                 maxLength={40}
                 className="w-full px-3 py-2 rounded-lg bg-dark-800 border border-white/5 text-white text-sm focus:outline-none focus:border-neon-cyan/50"
               />
+              {renameError && (
+                <div className="text-sm text-red-400 mt-2">{renameError}</div>
+              )}
             </div>
 
             <div className="flex gap-2 justify-end mt-4">
               <button
                 onClick={async () => {
                   if (!suggestedName || !suggestedName.trim()) return;
+                  setRenameError(null);
                   try {
                     await updateName(suggestedName.trim());
                     // mark dismissed for this team and close
@@ -87,13 +92,21 @@ export default function Layout() {
                     }
                     setShowRenameDialog(false);
                   } catch (err) {
-                    // TODO: surface error in UI; for now log
-                    console.error('Failed to set team name', err);
+                    // surface useful message
+                    const status = err?.response?.status;
+                    if (status === 409) {
+                      setRenameError('That team name is already taken.');
+                    } else if (err?.response?.data?.error) {
+                      setRenameError(err.response.data.error);
+                    } else {
+                      setRenameError('Failed to set team name. Try again.');
+                    }
+                    // keep dialog open for correction
                   }
                 }}
-                className="px-4 py-2 bg-neon-cyan rounded-lg font-semibold"
-              >
-                Set team name
+                disabled={!!loading}
+                className={`px-4 py-2 rounded-lg font-semibold ${loading ? 'bg-dark-700 opacity-60 cursor-wait' : 'bg-neon-cyan'}`}>
+                {loading ? 'Saving…' : 'Set team name'}
               </button>
               <button onClick={closeDialog} className="px-4 py-2 bg-dark-800 rounded-lg">
                 Change later in profile settings
