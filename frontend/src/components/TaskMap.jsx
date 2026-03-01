@@ -302,11 +302,15 @@ export default function TaskMap({ tasks = [], config, onTaskClick, onMapClick, a
         }
         .task-popup .leaflet-popup-content { margin: 0 !important; }
         .task-popup .leaflet-popup-tip { display: none !important; }
+        /* Constrain Leaflet z-index to stay below BottomNav (z-50) */
+        .leaflet-pane { z-index: auto !important; }
+        .leaflet-zoom-control { z-index: 20 !important; }
+        .leaflet-popup { z-index: 15 !important; }
       `}</style>
       <div
         ref={mapRef}
         className="w-full h-full min-h-[400px] rounded-none"
-        style={{ background: '#f8f9fa' }}
+        style={{ background: '#f8f9fa', zIndex: 10 }}
       />
     </>
   );
