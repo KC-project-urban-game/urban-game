@@ -283,12 +283,9 @@ Otwórz w przeglądarce:
 https://<twoja-domena>.azurestaticapps.net
 ```
 
-Zaloguj się kontem admina (dane zostaną ustawione przez auto-seed przy pierwszym uruchomieniu):
-- **Login:** `admin`
-- **Hasło:** `admin2026`
+Zaloguj się kontem administratora, używając danych logowania, które samodzielnie skonfigurujesz podczas wdrażania backendu (np. poprzez zmienne środowiskowe w Azure App Service, takie jak `ADMIN_USERNAME` i `ADMIN_PASSWORD`).
 
-> **Ważne:** Zmień hasło admina natychmiast po pierwszym logowaniu.
-
+> **Ważne:** Ustaw silne, unikalne hasło administratora, przechowuj je w bezpiecznym miejscu i regularnie je zmieniaj. Nie stosuj domyślnych ani przykładowych haseł z dokumentacji.
 ### 6.3 Sprawdź logi backendu
 
 ```bash
