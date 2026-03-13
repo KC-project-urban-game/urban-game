@@ -1,15 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Target, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import api from '../api/axios';
 
 export default function Login() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [gameTitle, setGameTitle] = useState('Urban Game');
+  const [gameSubtitle, setGameSubtitle] = useState('Live Edition');
   const { login, loading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    api.get('/config')
+      .then(({ data }) => {
+        if (data?.gameTitle) setGameTitle(data.gameTitle);
+        if (data?.gameSubtitle) setGameSubtitle(data.gameSubtitle);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,11 +67,9 @@ export default function Login() {
             <Target className="text-neon-cyan" size={36} />
           </motion.div>
           <h1 className="text-3xl font-black tracking-tight">
-            <span className="text-neon-cyan neon-glow">SCAVENGER</span>
-            <br />
-            <span className="text-white">HUNT</span>
+            <span className="text-neon-cyan neon-glow">{gameTitle}</span>
           </h1>
-          <p className="text-gray-500 text-sm mt-2 font-medium">Conference Edition 2026</p>
+          <p className="text-gray-500 text-sm mt-2 font-medium">{gameSubtitle}</p>
         </div>
 
         {/* Form Card */}

@@ -127,8 +127,8 @@ const CONFIG = {
   hintPenaltyPoints: 0,
   leaderboardMode: 'most-tasks',
   gameActive: true,
-  gameTitle: 'Scavenger Hunt 2026',
-  gameSubtitle: 'Conference Edition',
+  gameTitle: process.env.DEFAULT_GAME_TITLE || 'Urban Game',
+  gameSubtitle: process.env.DEFAULT_GAME_SUBTITLE || 'Live Edition',
   mapCenterLat: 52.2297,    // ← Set to YOUR venue latitude
   mapCenterLng: 21.0122,    // ← Set to YOUR venue longitude
   mapZoom: 17,

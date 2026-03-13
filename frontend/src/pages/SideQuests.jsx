@@ -180,9 +180,9 @@ export default function SideQuests() {
               <label className="block w-full cursor-pointer mb-3">
                 <div className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-white/10 hover:border-neon-gold/40 transition-colors">
                   <Camera size={18} className="text-gray-400" />
-                  <span className="text-sm text-gray-400">{file ? file.name : 'Choose photo…'}</span>
+                  <span className="text-sm text-gray-400">{file ? file.name : 'Take or choose photo…'}</span>
                 </div>
-                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+                <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </label>
 
               <button

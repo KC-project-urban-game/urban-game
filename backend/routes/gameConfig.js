@@ -4,14 +4,19 @@
 // ──────────────────────────────────────────────────────────────
 const router = require('express').Router();
 const GameConfig = require('../models/GameConfig');
+const { getEffectiveGameState } = require('../utils/gameState');
 
 router.get('/', async (_req, res, next) => {
   try {
     const config = await GameConfig.getConfig();
+    const effectiveState = getEffectiveGameState(config);
     res.json({
       gameTitle: config.gameTitle,
       gameSubtitle: config.gameSubtitle,
-      gameActive: config.gameActive,
+      gameActive: effectiveState.active,
+      gameActiveManual: config.gameActive,
+      gameInactiveReason: effectiveState.active ? null : effectiveState.reason,
+      gameEndedBy: effectiveState.endedBy,
       mapCenterLat: config.mapCenterLat,
       mapCenterLng: config.mapCenterLng,
       mapZoom: config.mapZoom,

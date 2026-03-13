@@ -8,6 +8,7 @@ const router = require('express').Router();
 const SideQuest = require('../models/SideQuest');
 const SideQuestSubmission = require('../models/SideQuestSubmission');
 const auth = require('../middleware/auth');
+const gameActive = require('../middleware/gameActive');
 const { upload } = require('../config/upload');
 const fullUrl = require('../utils/fullUrl');
 
@@ -63,7 +64,7 @@ router.get('/gallery', auth, async (req, res, next) => {
 });
 
 // Submit photo for a sidequest
-router.post('/:id/submit', auth, upload.single('photo'), async (req, res, next) => {
+router.post('/:id/submit', auth, gameActive, upload.single('photo'), async (req, res, next) => {
   try {
     const quest = await SideQuest.findById(req.params.id);
     if (!quest) return res.status(404).json({ error: 'SideQuest not found' });

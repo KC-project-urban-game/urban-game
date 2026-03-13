@@ -22,6 +22,7 @@ export default function TaskDetail() {
   const navigate = useNavigate();
 
   const [task, setTask] = useState(null);
+  const [taskStats, setTaskStats] = useState({ completedCount: 0, activeCount: 0 });
   const [submission, setSubmission] = useState(null);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,7 @@ export default function TaskDetail() {
   const [hintRevealed, setHintRevealed] = useState(false);
   const [locationRevealed, setLocationRevealed] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [submissionPhotoObjectUrl, setSubmissionPhotoObjectUrl] = useState(null);
 
   const fileRef = useRef(null);
 
@@ -39,6 +41,7 @@ export default function TaskDetail() {
   const completed = submission?.status === 'completed';
   const blocked = submission?.status === 'blocked';
   const { formatted: timerDisplay } = useTimer(submission?.riddleOpenedAt, isRunning);
+  const displayedImageUrl = preview || submissionPhotoObjectUrl || submission?.photoUrl || null;
 
   // Config-based reveal delays (in ms)
   const hintDelayMs = (config?.hintRevealDelaySec || 180) * 1000;
@@ -52,6 +55,7 @@ export default function TaskDetail() {
     ])
       .then(([taskRes, configRes]) => {
         setTask(taskRes.data.task);
+        setTaskStats(taskRes.data.taskStats || { completedCount: 0, activeCount: 0 });
         setSubmission(taskRes.data.submission);
         setConfig(configRes.data);
         setLoading(false);
@@ -94,12 +98,41 @@ export default function TaskDetail() {
     }
   }, [locationRevealed]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Load authenticated submission image blob for reliable rendering ──
+  useEffect(() => {
+    let active = true;
+    let objectUrl = null;
+
+    async function loadSubmissionPhoto() {
+      if (!submission?.photoEndpoint) {
+        setSubmissionPhotoObjectUrl(null);
+        return;
+      }
+
+      try {
+        const response = await api.get(submission.photoEndpoint, { responseType: 'blob' });
+        objectUrl = URL.createObjectURL(response.data);
+        if (active) setSubmissionPhotoObjectUrl(objectUrl);
+      } catch (_err) {
+        if (active) setSubmissionPhotoObjectUrl(null);
+      }
+    }
+
+    loadSubmissionPhoto();
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [submission?.photoEndpoint]);
+
   // ── Start Task → creates submission & starts timer ─────
   const handleStart = async () => {
     setStarting(true);
     try {
       const { data } = await api.post(`/tasks/${id}/start`);
       setTask(data.task);
+      setTaskStats(data.taskStats || { completedCount: 0, activeCount: 0 });
       setSubmission(data.submission);
       toast.success('Timer started! Go find it!');
     } catch (err) {
@@ -125,6 +158,8 @@ export default function TaskDetail() {
       });
 
       setSubmission(data.submission);
+      setPreview(null);
+      setTaskStats(data.taskStats || { completedCount: 0, activeCount: 0 });
       toast.success(`Submitted in ${formatMs(data.submission.elapsedMs)}!`);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Upload failed');
@@ -202,6 +237,24 @@ export default function TaskDetail() {
           <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-neon-gold/10 text-neon-gold text-xs font-bold">
             <Sparkles size={12} />
             {task.points} pts
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="grid grid-cols-2 gap-3"
+        >
+          <div className="glass rounded-2xl p-4 neon-border">
+            <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest mb-1">Finished</div>
+            <div className="text-2xl font-black text-neon-green">{taskStats.completedCount}</div>
+            <div className="text-xs text-gray-400 mt-1">teams already completed this task</div>
+          </div>
+          <div className="glass rounded-2xl p-4 neon-border-pink">
+            <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest mb-1">Active Now</div>
+            <div className="text-2xl font-black text-neon-pink">{taskStats.activeCount}</div>
+            <div className="text-xs text-gray-400 mt-1">teams currently working on it</div>
           </div>
         </motion.div>
 
@@ -339,10 +392,10 @@ export default function TaskDetail() {
               transition={{ delay: 0.3 }}
               className="space-y-3"
             >
-              {(preview || submission?.photoUrl) && (
+              {displayedImageUrl && (
                 <div className="relative rounded-2xl overflow-hidden neon-border">
                   <img
-                    src={submission?.photoUrl || preview}
+                    src={displayedImageUrl}
                     alt="Submission"
                     className="w-full aspect-[4/3] object-cover"
                   />
@@ -376,7 +429,6 @@ export default function TaskDetail() {
                     ref={fileRef}
                     type="file"
                     accept="image/*"
-                    capture="environment"
                     onChange={handleFileChange}
                     className="hidden"
                   />
@@ -387,7 +439,7 @@ export default function TaskDetail() {
                     className="w-full py-4 rounded-2xl font-bold text-sm tracking-wide bg-gradient-to-r from-neon-cyan to-neon-pink text-white shadow-neon flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
                   >
                     <Camera size={20} />
-                    {uploading ? 'Uploading...' : preview ? 'Retake Photo' : 'Take Photo'}
+                    {uploading ? 'Uploading...' : preview ? 'Choose Different Photo' : 'Take or Choose Photo'}
                   </motion.button>
                 </>
               )}

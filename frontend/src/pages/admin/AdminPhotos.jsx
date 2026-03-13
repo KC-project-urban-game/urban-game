@@ -3,7 +3,7 @@
 // + approve/reject sidequest submissions
 // Filters: category (tasks/sidequests), status, task, scored
 // ──────────────────────────────────────────────────────────────
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -62,6 +62,7 @@ export default function AdminPhotos() {
   const [blockModal, setBlockModal] = useState({ open: false, id: null });
   const [deleteModal, setDeleteModal] = useState({ open: false, id: null });
   const [actionLoading, setActionLoading] = useState(false);
+  const objectUrlsRef = useRef([]);
 
   // Load tasks for the task filter dropdown
   useEffect(() => {
@@ -71,7 +72,26 @@ export default function AdminPhotos() {
   const loadSubmissions = () => {
     const params = filter !== 'all' ? `?status=${filter}` : '';
     api.get(`/admin/submissions${params}`)
-      .then(({ data }) => { setSubmissions(data); setLoading(false); })
+      .then(async ({ data }) => {
+        objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+        objectUrlsRef.current = [];
+
+        const withImages = await Promise.all((data || []).map(async (sub) => {
+          if (!sub.photoEndpoint) return { ...sub, renderedPhotoUrl: null };
+
+          try {
+            const response = await api.get(sub.photoEndpoint, { responseType: 'blob' });
+            const renderedPhotoUrl = URL.createObjectURL(response.data);
+            objectUrlsRef.current.push(renderedPhotoUrl);
+            return { ...sub, renderedPhotoUrl };
+          } catch (_err) {
+            return { ...sub, renderedPhotoUrl: sub.photoUrl || null };
+          }
+        }));
+
+        setSubmissions(withImages);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   };
 
@@ -84,6 +104,10 @@ export default function AdminPhotos() {
 
   useEffect(() => { setLoading(true); loadSubmissions(); }, [filter]);
   useEffect(() => { if (category === 'sidequests') loadSqSubmissions(); }, [category, loadSqSubmissions]);
+  useEffect(() => () => {
+    objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    objectUrlsRef.current = [];
+  }, []);
 
   // Apply client-side filters (task + scored)
   const filteredSubmissions = submissions.filter((sub) => {
@@ -325,10 +349,10 @@ export default function AdminPhotos() {
               </div>
 
               {/* Photo */}
-              {sub.photoUrl && (
+              {(sub.renderedPhotoUrl || sub.photoUrl) && (
                 <div className="relative">
                   <img
-                    src={sub.photoUrl}
+                    src={sub.renderedPhotoUrl || sub.photoUrl}
                     alt="Submission"
                     className={`w-full aspect-[4/3] object-cover ${
                       sub.status === 'blocked' ? 'opacity-40 grayscale' : ''

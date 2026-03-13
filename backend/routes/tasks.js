@@ -10,7 +10,9 @@ const Team = require('../models/Team');
 const Submission = require('../models/Submission');
 const GameConfig = require('../models/GameConfig');
 const auth = require('../middleware/auth');
+const gameActive = require('../middleware/gameActive');
 const fullUrl = require('../utils/fullUrl');
+const { getTaskStats } = require('../utils/taskStats');
 
 // List all active tasks in this team's queue order
 router.get('/', auth, async (req, res, next) => {
@@ -91,6 +93,7 @@ router.get('/:id', auth, async (req, res, next) => {
     const config = await GameConfig.getConfig();
     const locDelay = (config.locationRevealDelaySec || 360) * 1000;
     const taskObj = task.toObject();
+    const taskStats = await getTaskStats(task._id);
 
     // Strip location for teams until the reveal delay has passed
     if (req.role !== 'admin') {
@@ -104,6 +107,7 @@ router.get('/:id', auth, async (req, res, next) => {
 
     res.json({
       task: taskObj,
+      taskStats,
       submission: submission
         ? {
             id: submission._id,
@@ -111,6 +115,7 @@ router.get('/:id', auth, async (req, res, next) => {
             status: submission.status,
             elapsedMs: submission.elapsedMs,
             photoUrl: fullUrl(req, submission.photoUrl),
+            photoEndpoint: submission.photoUrl ? `/submissions/${submission._id}/photo` : null,
           }
         : null, // null means task hasn't been started yet
     });
@@ -121,7 +126,7 @@ router.get('/:id', auth, async (req, res, next) => {
 
 // ★ START the task – creates the submission and starts the server-side timer
 // POST /api/tasks/:id/start
-router.post('/:id/start', auth, async (req, res, next) => {
+router.post('/:id/start', auth, gameActive, async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
@@ -135,6 +140,7 @@ router.post('/:id/start', auth, async (req, res, next) => {
     if (submission) {
       // Already started – just return current state
       const taskObj = task.toObject();
+      const taskStats = await getTaskStats(task._id);
       if (req.role !== 'admin') {
         const cfg = await GameConfig.getConfig();
         const delay = (cfg.locationRevealDelaySec || 360) * 1000;
@@ -143,12 +149,14 @@ router.post('/:id/start', auth, async (req, res, next) => {
       }
       return res.json({
         task: taskObj,
+        taskStats,
         submission: {
           id: submission._id,
           riddleOpenedAt: submission.riddleOpenedAt,
           status: submission.status,
           elapsedMs: submission.elapsedMs,
           photoUrl: fullUrl(req, submission.photoUrl),
+          photoEndpoint: submission.photoUrl ? `/submissions/${submission._id}/photo` : null,
         },
       });
     }
@@ -167,14 +175,18 @@ router.post('/:id/start', auth, async (req, res, next) => {
       delete newTaskObj.lng;
     }
 
+    const taskStats = await getTaskStats(task._id);
+
     res.status(201).json({
       task: newTaskObj,
+      taskStats,
       submission: {
         id: submission._id,
         riddleOpenedAt: submission.riddleOpenedAt,
         status: submission.status,
         elapsedMs: null,
         photoUrl: null,
+        photoEndpoint: null,
       },
     });
   } catch (err) {

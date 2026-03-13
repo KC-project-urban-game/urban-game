@@ -15,6 +15,7 @@ const submissionSchema = new mongoose.Schema(
 
     // ── Photo ───────────────────────────────────────────────
     photoUrl: { type: String },
+    photoBlurUrl: { type: String },
     cloudinaryId: { type: String },
 
     status: {

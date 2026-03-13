@@ -49,7 +49,7 @@ export default function BottomNav() {
             {({ isActive }) => (
               <>
                 <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-                <span className="text-[10px] font-semibold tracking-wide">{label}</span>
+                <span className="text-[10px] text-center font-semibold tracking-wide">{label}</span>
               </>
             )}
           </NavLink>

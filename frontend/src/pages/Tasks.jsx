@@ -29,7 +29,7 @@ function formatMs(ms) {
 export default function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('map'); // 'map' or 'list'
+  const [view, setView] = useState('list'); // 'list' or 'map'
   const [config, setConfig] = useState(null);
   const { team } = useAuth();
   const navigate = useNavigate();
@@ -80,17 +80,6 @@ export default function Tasks() {
         {/* View toggle */}
         <div className="flex gap-2">
           <button
-            onClick={() => setView('map')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              view === 'map'
-                ? 'bg-neon-cyan/20 text-neon-cyan neon-border'
-                : 'glass text-gray-400 hover:text-white'
-            }`}
-          >
-            <MapIcon size={14} />
-            Map
-          </button>
-          <button
             onClick={() => setView('list')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               view === 'list'
@@ -100,6 +89,17 @@ export default function Tasks() {
           >
             <List size={14} />
             List
+          </button>
+          <button
+            onClick={() => setView('map')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              view === 'map'
+                ? 'bg-neon-cyan/20 text-neon-cyan neon-border'
+                : 'glass text-gray-400 hover:text-white'
+            }`}
+          >
+            <MapIcon size={14} />
+            Map
           </button>
         </div>
       </div>

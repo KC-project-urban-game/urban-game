@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────
-// Scavenger Hunt API – Main Entry Point
+// Urban Game API – Main Entry Point
 // ──────────────────────────────────────────────────────────────
 require('dotenv').config();
 const express = require('express');
@@ -72,7 +72,8 @@ async function autoSeed() {
     await GameConfig.create({
       defaultTaskPoints: 100, timeBonusThresholdSec: 120, timeBonusPoints: 50,
       hintPenaltyPoints: 0, leaderboardMode: 'most-tasks', gameActive: true,
-      gameTitle: 'Scavenger Hunt 2026', gameSubtitle: 'Conference Edition',
+      gameTitle: process.env.DEFAULT_GAME_TITLE || 'Urban Game',
+      gameSubtitle: process.env.DEFAULT_GAME_SUBTITLE || 'Live Edition',
       mapCenterLat: 52.2297, mapCenterLng: 21.0122, mapZoom: 17,
       allowRegistration: true, shuffleTaskOrder: true,
     });
@@ -94,7 +95,7 @@ app.use('/api/config', require('./routes/gameConfig'));
 
 // Root API info
 app.get('/api', (_req, res) => res.json({
-  app: 'Scavenger Hunt API',
+  app: process.env.APP_NAME || 'Urban Game API',
   version: '1.0.0',
   endpoints: [
     'GET  /api/health',

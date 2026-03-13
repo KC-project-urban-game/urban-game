@@ -5,9 +5,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Settings, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Settings, Save, Loader2, RotateCcw, AlertTriangle } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
+import { InputModal } from '../../components/ConfirmModal';
 
 const FIELDS = [
   { section: 'Scoring & Points', fields: [
@@ -46,6 +47,8 @@ export default function AdminConfig() {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resettingRound, setResettingRound] = useState(false);
 
   useEffect(() => {
     api.get('/admin/config')
@@ -67,6 +70,27 @@ export default function AdminConfig() {
       toast.error('Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetRound = async (value) => {
+    if (String(value || '').trim() !== 'RESET ROUND') {
+      toast.error('Type RESET ROUND exactly to confirm.');
+      return;
+    }
+
+    setResettingRound(true);
+    try {
+      const { data } = await api.post('/admin/reset-round', { confirmation: 'RESET ROUND' });
+      const deleted = data?.deleted || {};
+      toast.success(
+        `Reset complete: ${deleted.teams || 0} teams, ${deleted.taskSubmissions || 0} task submissions, ${deleted.sideQuestSubmissions || 0} side quest submissions removed.`
+      );
+      setResetModalOpen(false);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to reset round');
+    } finally {
+      setResettingRound(false);
     }
   };
 
@@ -154,6 +178,35 @@ export default function AdminConfig() {
         ))}
       </div>
 
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mt-6"
+      >
+        <h2 className="text-xs font-bold text-red-400 uppercase tracking-widest">Danger Zone</h2>
+        <div className="glass rounded-2xl p-4 mt-3 space-y-4 border border-red-500/25">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-red-500/20 flex items-center justify-center shrink-0">
+              <AlertTriangle size={18} className="text-red-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Reset Round (Full Player Data Purge)</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Deletes all non-admin teams, task submissions, side quest submissions, and uploaded player photos.
+                Tasks, side quests, and game settings are preserved.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setResetModalOpen(true)}
+            className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-colors"
+          >
+            <RotateCcw size={16} />
+            Purge Player Data
+          </button>
+        </div>
+      </motion.div>
+
       {/* Save button (sticky) */}
       <div className="sticky bottom-20 mt-[30px]">
         <button
@@ -165,6 +218,19 @@ export default function AdminConfig() {
           {saving ? 'Saving...' : 'Save All Settings'}
         </button>
       </div>
+
+      <InputModal
+        open={resetModalOpen}
+        title="Reset Round"
+        message="Type RESET ROUND to permanently purge all player data and start a fresh game round."
+        placeholder="RESET ROUND"
+        confirmLabel="Purge Data"
+        confirmColor="red"
+        onConfirm={handleResetRound}
+        onCancel={() => setResetModalOpen(false)}
+        loading={resettingRound}
+        required
+      />
     </div>
   );
 }

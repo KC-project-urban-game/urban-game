@@ -174,7 +174,11 @@ router.get('/submissions', async (req, res, next) => {
       .sort('-photoSubmittedAt')
       .lean();
 
-    res.json(submissions.map((s) => ({ ...s, photoUrl: fullUrl(req, s.photoUrl) })));
+    res.json(submissions.map((s) => ({
+      ...s,
+      photoUrl: fullUrl(req, s.photoUrl),
+      photoEndpoint: s.photoUrl ? `/submissions/${s._id}/photo` : null,
+    })));
   } catch (err) {
     next(err);
   }
@@ -245,16 +249,18 @@ router.delete('/submissions/:id', async (req, res, next) => {
     const submission = await Submission.findById(req.params.id);
     if (!submission) return res.status(404).json({ error: 'Submission not found' });
 
-    // Delete the photo file from disk if it exists
-    if (submission.photoUrl) {
-      const filePath = path.join(__dirname, '..', submission.photoUrl);
+    // Delete original + blurred files from disk if they exist
+    [submission.photoUrl, submission.photoBlurUrl].forEach((urlPath) => {
+      if (!urlPath || typeof urlPath !== 'string') return;
+      const filePath = path.join(__dirname, '..', urlPath);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
-    }
+    });
 
     // Reset to in-progress so the team can re-upload (timer keeps running)
     submission.photoUrl = null;
+    submission.photoBlurUrl = null;
     submission.cloudinaryId = null;
     submission.photoSubmittedAt = null;
     submission.elapsedMs = null;
@@ -546,6 +552,70 @@ router.get('/stats', async (_req, res, next) => {
       completed: completedCount,
       blocked: blockedCount,
       inProgress: submissionCount - completedCount - blockedCount,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/admin/reset-round – purge all player-created data for a fresh game round
+// Body: { confirmation: "RESET ROUND" }
+router.post('/reset-round', async (req, res, next) => {
+  try {
+    const confirmation = String(req.body?.confirmation || '').trim();
+    if (confirmation !== 'RESET ROUND') {
+      return res.status(400).json({ error: 'Confirmation must be exactly: RESET ROUND' });
+    }
+
+    const [taskSubmissions, sideQuestSubmissions] = await Promise.all([
+      Submission.find({ photoUrl: { $ne: null } }).select('photoUrl photoBlurUrl').lean(),
+      SideQuestSubmission.find({ photoUrl: { $ne: null } }).select('photoUrl').lean(),
+    ]);
+
+    const toAbsoluteUploadPath = (photoUrl) => {
+      if (!photoUrl || typeof photoUrl !== 'string') return null;
+      const normalized = photoUrl.replace(/^\/+/, '');
+      return path.join(__dirname, '..', normalized);
+    };
+
+    const uploadPaths = new Set();
+    taskSubmissions.forEach((s) => {
+      const originalPath = toAbsoluteUploadPath(s.photoUrl);
+      const blurredPath = toAbsoluteUploadPath(s.photoBlurUrl);
+      if (originalPath) uploadPaths.add(originalPath);
+      if (blurredPath) uploadPaths.add(blurredPath);
+    });
+    sideQuestSubmissions.forEach((s) => {
+      const p = toAbsoluteUploadPath(s.photoUrl);
+      if (p) uploadPaths.add(p);
+    });
+
+    const [submissionDeleteResult, sideQuestSubmissionDeleteResult, teamDeleteResult] = await Promise.all([
+      Submission.deleteMany({}),
+      SideQuestSubmission.deleteMany({}),
+      Team.deleteMany({ role: 'team' }),
+    ]);
+
+    let deletedFiles = 0;
+    for (const filePath of uploadPaths) {
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+          deletedFiles += 1;
+        } catch (_e) {
+          // Best-effort cleanup; continue if a single file cannot be removed.
+        }
+      }
+    }
+
+    res.json({
+      message: 'Round reset complete',
+      deleted: {
+        teams: teamDeleteResult.deletedCount || 0,
+        taskSubmissions: submissionDeleteResult.deletedCount || 0,
+        sideQuestSubmissions: sideQuestSubmissionDeleteResult.deletedCount || 0,
+        uploadedFiles: deletedFiles,
+      },
     });
   } catch (err) {
     next(err);

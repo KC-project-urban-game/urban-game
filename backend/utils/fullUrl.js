@@ -8,7 +8,9 @@
 // ──────────────────────────────────────────────────────────────
 
 function getOrigin(req) {
-  if (process.env.VITE_API_URL) return process.env.VITE_API_URL.replace(/\/+$/, '');
+  if (process.env.BACKEND_URL) {
+    return process.env.BACKEND_URL.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+  }
   const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
   const host = req.headers['x-forwarded-host'] || req.get('host');
   return `${proto}://${host}`;

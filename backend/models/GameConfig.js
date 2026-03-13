@@ -30,8 +30,8 @@ const gameConfigSchema = new mongoose.Schema(
 
     // ── Game State ────────────────────────────────────────────
     gameActive: { type: Boolean, default: true },
-    gameTitle: { type: String, default: 'Scavenger Hunt 2026' },
-    gameSubtitle: { type: String, default: 'Conference Edition' },
+    gameTitle: { type: String, default: process.env.DEFAULT_GAME_TITLE || 'Urban Game' },
+    gameSubtitle: { type: String, default: process.env.DEFAULT_GAME_SUBTITLE || 'Live Edition' },
 
     // ── Map Settings ──────────────────────────────────────────
     // Default map center (set to your venue location)
